@@ -1452,4 +1452,18 @@ nav::-webkit-scrollbar { display: none; }
   h1 { font-size: 18px; }
   .nav-btn { padding: 10px 24px; font-size: 14px; }
   .view { min-height: calc(100vh - 100px); }
+  .tracker-body { padding: 16px 32px; }
+  .tracker-stats { grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 32px; }
+  .stat-item { padding: 16px 20px; }
+  .stat-name { font-size: 15px; }
+  .stat-count { font-size: 14px; }
+  .stat-dot { width: 14px; height: 14px; }
+  .stat-dots { gap: 6px; }
+}
+
+@media (min-width: 1024px) {
+  .tracker-body { padding: 20px 48px; }
+  .tracker-stats { grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 0 48px; }
+  .stat-dot { width: 16px; height: 16px; }
+  .stat-dots { gap: 7px; }
 }
