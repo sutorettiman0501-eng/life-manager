@@ -1017,9 +1017,9 @@ nav::-webkit-scrollbar { display: none; }
 
 .tracker-stats {
   padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .stat-item {
@@ -1095,4 +1095,5 @@ nav::-webkit-scrollbar { display: none; }
   h1 { font-size: 18px; }
   .nav-btn { padding: 10px 24px; font-size: 14px; }
   .view { min-height: calc(100vh - 100px); }
+  .tracker-stats { grid-template-columns: 1fr 1fr 1fr; }
 }
