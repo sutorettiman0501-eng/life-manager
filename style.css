@@ -1240,25 +1240,37 @@ nav::-webkit-scrollbar { display: none; }
   line-height: 2;
 }
 
+#wishlist-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+  padding: 16px;
+}
+
 .wishlist-category-section {
-  padding: 0 16px 20px;
+  min-width: 0;
 }
 
 .wishlist-category-label {
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
-  padding: 16px 0 10px;
+  padding: 8px 0 8px;
+}
+
+.wishlist-category-section .wishlist-grid {
+  grid-template-columns: 1fr;
 }
 
 @media (min-width: 768px) {
-  .wishlist-grid { grid-template-columns: 1fr 1fr 1fr; }
-  .wishlist-category-section { padding: 0 32px 24px; }
+  #wishlist-grid { grid-template-columns: 1fr 1fr; gap: 0 24px; padding: 24px 32px; }
+  .wishlist-category-section .wishlist-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (min-width: 1024px) {
-  .wishlist-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  #wishlist-grid { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0 20px; padding: 24px 32px; }
+  .wishlist-category-section .wishlist-grid { grid-template-columns: 1fr; }
 }
 
 /* ===== Journal ===== */
