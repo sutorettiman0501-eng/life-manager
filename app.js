@@ -20,6 +20,13 @@ let trackerLogs = [];
 let trackerDate = new Date();
 let selectedTod = 'morning';
 
+// Journal データ
+let journalEntries = [];
+let currentJournalView = 'daily';
+let journalDay = new Date();
+let journalWeek = getWeekStart(new Date());
+let journalMonth = new Date();
+
 // Tasks データ
 let tasks = [];
 let categories = [];
@@ -43,7 +50,7 @@ const TIME_BLOCKS = [
 // ===== 初期化 =====
 async function init() {
   setupEventListeners();
-  await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData()]);
+  await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData(), loadJournalData()]);
   renderYear();
 }
 
@@ -187,6 +194,251 @@ async function deleteHabit(habitId) {
   renderTracker();
 }
 
+// ===== Journal データ読み込み =====
+async function loadJournalData() {
+  const { data } = await db.from('journal_entries').select('*');
+  if (data) journalEntries = data;
+}
+
+// ===== Journal ユーティリティ =====
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // 月曜始まり
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// ===== Journal レンダー =====
+function renderJournal() {
+  if (currentJournalView === 'daily') renderDailyJournal();
+  else if (currentJournalView === 'weekly') renderWeeklyJournal();
+  else if (currentJournalView === 'monthly') renderMonthlyJournal();
+}
+
+function switchJournalView(view) {
+  currentJournalView = view;
+  document.querySelectorAll('.journal-subview').forEach(v => v.classList.remove('active'));
+  document.getElementById(`journal-${view}`).classList.add('active');
+  document.querySelectorAll('[data-journal-view]').forEach(b => {
+    b.classList.toggle('active', b.dataset.journalView === view);
+  });
+  renderJournal();
+}
+
+function renderDailyJournal() {
+  const dateStr = toDateStr(journalDay);
+  document.getElementById('journal-daily-label').textContent = formatDateJP(journalDay);
+
+  const dayTasks = getTasksForDate(dateStr);
+  const entry = journalEntries.find(e => e.date === dateStr && e.period === 'daily');
+  const doneTasks = dayTasks.filter(t => isTaskDoneOnDate(t, dateStr));
+
+  const dayHabits = habits.map(h => ({
+    ...h,
+    done: trackerLogs.some(l => l.habit_id === h.id && l.date === dateStr)
+  }));
+  const doneHabits = dayHabits.filter(h => h.done);
+
+  const content = document.getElementById('journal-daily-content');
+  content.innerHTML = '';
+
+  // タスク
+  const taskSection = makeJournalSection(
+    'TASKS',
+    `${doneTasks.length} / ${dayTasks.length} 完了`,
+    dayTasks.length
+      ? dayTasks.map(t => makeTaskRow(t.title, isTaskDoneOnDate(t, dateStr))).join('')
+      : '<div class="journal-empty">タスクなし</div>'
+  );
+  content.appendChild(taskSection);
+
+  // 習慣
+  const habitSection = makeJournalSection(
+    'HABITS',
+    `${doneHabits.length} / ${dayHabits.length} 達成`,
+    dayHabits.length
+      ? dayHabits.map(h => makeTaskRow(h.name, h.done)).join('')
+      : '<div class="journal-empty">習慣なし</div>'
+  );
+  content.appendChild(habitSection);
+
+  // メモ
+  content.appendChild(makeMemoSection(entry?.content || '', dateStr, 'daily', '今日の振り返りを書きましょう...'));
+}
+
+function renderWeeklyJournal() {
+  const weekStart = new Date(journalWeek);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekKey = toDateStr(weekStart);
+
+  document.getElementById('journal-weekly-label').textContent =
+    `${weekStart.getMonth()+1}/${weekStart.getDate()} 〜 ${weekEnd.getMonth()+1}/${weekEnd.getDate()}`;
+
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i); return toDateStr(d);
+  });
+
+  // タスク（重複排除）
+  const seen = new Set();
+  const weekTasks = tasks.filter(t => {
+    if (!weekDates.some(d => isTaskOnDate(t, d))) return false;
+    if (seen.has(t.id)) return false;
+    seen.add(t.id); return true;
+  });
+  const doneWeekTasks = weekTasks.filter(t => weekDates.some(d => isTaskDoneOnDate(t, d)));
+
+  // 習慣
+  const habitStats = habits.map(h => {
+    const count = weekDates.filter(d => trackerLogs.some(l => l.habit_id === h.id && l.date === d)).length;
+    return { ...h, count, total: 7 };
+  });
+
+  const entry = journalEntries.find(e => e.date === weekKey && e.period === 'weekly');
+  const content = document.getElementById('journal-weekly-content');
+  content.innerHTML = '';
+
+  content.appendChild(makeJournalSection(
+    'TASKS',
+    `${doneWeekTasks.length} / ${weekTasks.length} 完了`,
+    weekTasks.length
+      ? weekTasks.map(t => makeTaskRow(t.title, weekDates.some(d => isTaskDoneOnDate(t, d)))).join('')
+      : '<div class="journal-empty">タスクなし</div>'
+  ));
+
+  content.appendChild(makeJournalSection(
+    'HABITS',
+    '',
+    habitStats.length
+      ? habitStats.map(h => makeHabitStatRow(h.name, h.count, h.total)).join('')
+      : '<div class="journal-empty">習慣なし</div>'
+  ));
+
+  content.appendChild(makeMemoSection(entry?.content || '', weekKey, 'weekly', '今週の振り返りを書きましょう...'));
+}
+
+function renderMonthlyJournal() {
+  const year = journalMonth.getFullYear();
+  const month = journalMonth.getMonth();
+  const monthKey = `${year}-${String(month+1).padStart(2,'0')}`;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  document.getElementById('journal-monthly-label').textContent = `${year}年${month+1}月`;
+
+  const monthDates = Array.from({ length: daysInMonth }, (_, i) =>
+    `${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`
+  );
+
+  const seen = new Set();
+  const monthTasks = tasks.filter(t => {
+    if (!monthDates.some(d => isTaskOnDate(t, d))) return false;
+    if (seen.has(t.id)) return false;
+    seen.add(t.id); return true;
+  });
+  const doneMonthTasks = monthTasks.filter(t => monthDates.some(d => isTaskDoneOnDate(t, d)));
+
+  const today = new Date();
+  const passedDays = (year === today.getFullYear() && month === today.getMonth())
+    ? today.getDate() : daysInMonth;
+
+  const habitStats = habits.map(h => {
+    const count = monthDates.slice(0, passedDays).filter(d =>
+      trackerLogs.some(l => l.habit_id === h.id && l.date === d)
+    ).length;
+    return { ...h, count, total: passedDays };
+  });
+
+  const entry = journalEntries.find(e => e.date === monthKey && e.period === 'monthly');
+  const content = document.getElementById('journal-monthly-content');
+  content.innerHTML = '';
+
+  content.appendChild(makeJournalSection(
+    'TASKS',
+    `${doneMonthTasks.length} / ${monthTasks.length} 完了`,
+    monthTasks.length
+      ? monthTasks.map(t => makeTaskRow(t.title, monthDates.some(d => isTaskDoneOnDate(t, d)))).join('')
+      : '<div class="journal-empty">タスクなし</div>'
+  ));
+
+  content.appendChild(makeJournalSection(
+    'HABITS',
+    '',
+    habitStats.length
+      ? habitStats.map(h => makeHabitStatRow(h.name, h.count, h.total)).join('')
+      : '<div class="journal-empty">習慣なし</div>'
+  ));
+
+  content.appendChild(makeMemoSection(entry?.content || '', monthKey, 'monthly', '今月の振り返りを書きましょう...'));
+}
+
+// ===== Journal ヘルパー =====
+function makeJournalSection(title, badge, innerHtml) {
+  const sec = document.createElement('div');
+  sec.className = 'journal-section';
+  sec.innerHTML = `
+    <div class="journal-section-title">
+      ${title}
+      ${badge ? `<span class="journal-badge">${badge}</span>` : ''}
+    </div>
+    ${innerHtml}
+  `;
+  return sec;
+}
+
+function makeTaskRow(title, done) {
+  return `
+    <div class="journal-task-item${done ? ' done' : ''}">
+      <span class="journal-check-icon">${done ? '✓' : ''}</span>
+      <span>${escapeHtml(title)}</span>
+    </div>`;
+}
+
+function makeHabitStatRow(name, count, total) {
+  const pct = total > 0 ? Math.round(count / total * 100) : 0;
+  return `
+    <div class="journal-habit-stat">
+      <span class="journal-habit-name">${escapeHtml(name)}</span>
+      <span class="journal-habit-count">${count}/${total}日</span>
+      <div class="journal-habit-bar">
+        <div class="journal-habit-bar-fill" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+}
+
+function makeMemoSection(value, date, period, placeholder) {
+  const sec = document.createElement('div');
+  sec.className = 'journal-section';
+  sec.innerHTML = `
+    <div class="journal-section-title">振り返りメモ</div>
+    <div class="journal-memo-wrap">
+      <textarea class="journal-textarea" id="journal-memo-input" placeholder="${placeholder}">${escapeHtml(value)}</textarea>
+      <button class="journal-save-btn" id="journal-save-btn">保存</button>
+    </div>
+  `;
+  sec.querySelector('#journal-save-btn').addEventListener('click', () => saveJournalEntry(date, period));
+  return sec;
+}
+
+async function saveJournalEntry(date, period) {
+  const textarea = document.getElementById('journal-memo-input');
+  if (!textarea) return;
+  const content = textarea.value;
+  const existing = journalEntries.find(e => e.date === date && e.period === period);
+  if (existing) {
+    const { error } = await db.from('journal_entries')
+      .update({ content, updated_at: new Date().toISOString() }).eq('id', existing.id);
+    if (!error) existing.content = content;
+  } else {
+    const { data, error } = await db.from('journal_entries')
+      .insert({ date, period, content }).select().single();
+    if (error) { alert('保存に失敗しました: ' + error.message); return; }
+    journalEntries.push(data);
+  }
+  const btn = document.getElementById('journal-save-btn');
+  if (btn) { btn.textContent = '保存しました！'; setTimeout(() => { if (btn) btn.textContent = '保存'; }, 1500); }
+}
+
 // ===== Tasks データ読み込み =====
 async function loadTaskData() {
   const { data: t } = await db.from('tasks').select('*').order('created_at');
@@ -313,6 +565,7 @@ function renderCurrentView() {
   if (currentView === 'vision') renderVision();
   if (currentView === 'tasks') renderTasksSection();
   if (currentView === 'tracker') renderTracker();
+  if (currentView === 'journal') renderJournal();
 }
 
 // ===== Tasks セクション =====
@@ -855,6 +1108,35 @@ function setupEventListeners() {
     if (e.target === document.getElementById('habit-modal')) {
       document.getElementById('habit-modal').classList.add('hidden');
     }
+  });
+
+  // Journal サブナビ
+  document.querySelectorAll('[data-journal-view]').forEach(btn => {
+    btn.addEventListener('click', () => switchJournalView(btn.dataset.journalView));
+  });
+
+  // Journal 日次 日付移動
+  document.getElementById('journal-prev-day').addEventListener('click', () => {
+    journalDay.setDate(journalDay.getDate() - 1); renderDailyJournal();
+  });
+  document.getElementById('journal-next-day').addEventListener('click', () => {
+    journalDay.setDate(journalDay.getDate() + 1); renderDailyJournal();
+  });
+
+  // Journal 週次 週移動
+  document.getElementById('journal-prev-week').addEventListener('click', () => {
+    journalWeek.setDate(journalWeek.getDate() - 7); renderWeeklyJournal();
+  });
+  document.getElementById('journal-next-week').addEventListener('click', () => {
+    journalWeek.setDate(journalWeek.getDate() + 7); renderWeeklyJournal();
+  });
+
+  // Journal 月次 月移動
+  document.getElementById('journal-prev-month-j').addEventListener('click', () => {
+    journalMonth.setMonth(journalMonth.getMonth() - 1); renderMonthlyJournal();
+  });
+  document.getElementById('journal-next-month-j').addEventListener('click', () => {
+    journalMonth.setMonth(journalMonth.getMonth() + 1); renderMonthlyJournal();
   });
 
   // Visionモーダル

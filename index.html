@@ -247,9 +247,43 @@
 
   <!-- Journal -->
   <div id="journal-view" class="view">
-    <div class="section-placeholder">
-      <p>Journal — Coming Soon</p>
+
+    <div class="sub-nav">
+      <button class="sub-nav-btn active" data-journal-view="daily">日次</button>
+      <button class="sub-nav-btn" data-journal-view="weekly">週次</button>
+      <button class="sub-nav-btn" data-journal-view="monthly">月次</button>
     </div>
+
+    <!-- 日次 -->
+    <div id="journal-daily" class="journal-subview active">
+      <div class="journal-date-nav">
+        <button id="journal-prev-day" class="arrow-btn">&#8249;</button>
+        <span id="journal-daily-label"></span>
+        <button id="journal-next-day" class="arrow-btn">&#8250;</button>
+      </div>
+      <div id="journal-daily-content" class="journal-body"></div>
+    </div>
+
+    <!-- 週次 -->
+    <div id="journal-weekly" class="journal-subview">
+      <div class="journal-date-nav">
+        <button id="journal-prev-week" class="arrow-btn">&#8249;</button>
+        <span id="journal-weekly-label"></span>
+        <button id="journal-next-week" class="arrow-btn">&#8250;</button>
+      </div>
+      <div id="journal-weekly-content" class="journal-body"></div>
+    </div>
+
+    <!-- 月次 -->
+    <div id="journal-monthly" class="journal-subview">
+      <div class="journal-date-nav">
+        <button id="journal-prev-month-j" class="arrow-btn">&#8249;</button>
+        <span id="journal-monthly-label"></span>
+        <button id="journal-next-month-j" class="arrow-btn">&#8250;</button>
+      </div>
+      <div id="journal-monthly-content" class="journal-body"></div>
+    </div>
+
   </div>
 
   <!-- Wishlist -->
