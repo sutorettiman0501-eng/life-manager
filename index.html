@@ -203,8 +203,43 @@
 
   <!-- Tracker -->
   <div id="tracker-view" class="view">
-    <div class="section-placeholder">
-      <p>Tracker — Coming Soon</p>
+
+    <div class="tracker-header">
+      <button id="tracker-prev-day" class="arrow-btn">&#8249;</button>
+      <span id="tracker-date"></span>
+      <button id="tracker-next-day" class="arrow-btn">&#8250;</button>
+      <button id="add-habit-btn" class="text-btn">＋ 習慣を追加</button>
+    </div>
+
+    <div id="tracker-body" class="tracker-body"></div>
+
+    <div class="tracker-stats-section">
+      <div class="section-heading" style="padding:0 16px;">今月の実績</div>
+      <div id="tracker-stats" class="tracker-stats"></div>
+    </div>
+
+  </div>
+
+  <!-- 習慣追加モーダル -->
+  <div id="habit-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>習慣を追加</h2>
+      <div class="form-group">
+        <label>習慣名</label>
+        <input type="text" id="habit-name" placeholder="例：筋トレ、読書" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>いつやるか</label>
+        <div class="time-of-day-select">
+          <button class="tod-btn active" data-tod="morning">朝</button>
+          <button class="tod-btn" data-tod="afternoon">昼</button>
+          <button class="tod-btn" data-tod="evening">夜</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancel-habit">キャンセル</button>
+        <button class="btn-primary" id="save-habit">追加</button>
+      </div>
     </div>
   </div>
 
