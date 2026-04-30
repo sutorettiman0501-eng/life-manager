@@ -14,6 +14,12 @@ let visions = [];
 let yearlyGoals = [];
 let editingVisionRole = null;
 
+// Tracker データ
+let habits = [];
+let trackerLogs = [];
+let trackerDate = new Date();
+let selectedTod = 'morning';
+
 // Tasks データ
 let tasks = [];
 let categories = [];
@@ -37,8 +43,137 @@ const TIME_BLOCKS = [
 // ===== 初期化 =====
 async function init() {
   setupEventListeners();
-  await Promise.all([loadVisionData(), loadTaskData()]);
+  await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData()]);
   renderYear();
+}
+
+// ===== Tracker データ読み込み =====
+async function loadTrackerData() {
+  const { data: h } = await db.from('tracker_habits').select('*').order('sort_order').order('created_at');
+  if (h) habits = h;
+  const { data: l } = await db.from('tracker_logs').select('*');
+  if (l) trackerLogs = l;
+}
+
+// ===== Tracker レンダー =====
+function renderTracker() {
+  const dateStr = toDateStr(trackerDate);
+  document.getElementById('tracker-date').textContent = formatDateJP(trackerDate);
+
+  const body = document.getElementById('tracker-body');
+  body.innerHTML = '';
+
+  const groups = [
+    { key: 'morning',   label: '🌅 朝' },
+    { key: 'afternoon', label: '☀️ 昼' },
+    { key: 'evening',   label: '🌙 夜' },
+  ];
+
+  groups.forEach(({ key, label }) => {
+    const groupHabits = habits.filter(h => h.time_of_day === key);
+    if (!groupHabits.length) return;
+
+    const group = document.createElement('div');
+    group.className = 'tracker-time-group';
+    group.innerHTML = `<div class="tracker-time-label">${label}</div>`;
+
+    groupHabits.forEach(habit => {
+      const done = trackerLogs.some(l => l.habit_id === habit.id && l.date === dateStr);
+      const item = document.createElement('div');
+      item.className = 'habit-item';
+      item.innerHTML = `
+        <button class="habit-check ${done ? 'checked' : ''}" onclick="toggleHabit('${habit.id}','${dateStr}',${done})">
+          ${done ? '✓' : ''}
+        </button>
+        <span class="habit-name ${done ? 'checked' : ''}">${escapeHtml(habit.name)}</span>
+        <button class="habit-delete" onclick="deleteHabit('${habit.id}')">×</button>
+      `;
+      group.appendChild(item);
+    });
+
+    body.appendChild(group);
+  });
+
+  if (!habits.length) {
+    body.innerHTML = '<div style="padding:40px;text-align:center;color:#aaa;font-size:14px">習慣がまだありません<br>「＋ 習慣を追加」から追加してください</div>';
+  }
+
+  renderTrackerStats();
+}
+
+function renderTrackerStats() {
+  const stats = document.getElementById('tracker-stats');
+  stats.innerHTML = '';
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = now.getDate();
+
+  habits.forEach(habit => {
+    const doneCount = trackerLogs.filter(l => {
+      if (l.habit_id !== habit.id) return false;
+      const d = new Date(l.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    }).length;
+
+    const item = document.createElement('div');
+    item.className = 'stat-item';
+
+    const dots = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const done = trackerLogs.some(l => l.habit_id === habit.id && l.date === dateStr);
+      if (day > today) return `<span class="stat-dot future"></span>`;
+      return `<span class="stat-dot ${done ? 'done' : ''}"></span>`;
+    }).join('');
+
+    item.innerHTML = `
+      <div class="stat-header">
+        <span class="stat-name">${escapeHtml(habit.name)}</span>
+        <span class="stat-count">${doneCount} / ${today} 日</span>
+      </div>
+      <div class="stat-dots">${dots}</div>
+    `;
+    stats.appendChild(item);
+  });
+
+  if (!habits.length) stats.innerHTML = '';
+}
+
+// ===== 習慣チェック =====
+async function toggleHabit(habitId, dateStr, currentDone) {
+  if (!currentDone) {
+    const { data } = await db.from('tracker_logs').insert({ habit_id: habitId, date: dateStr }).select().single();
+    if (data) trackerLogs.push(data);
+  } else {
+    await db.from('tracker_logs').delete().eq('habit_id', habitId).eq('date', dateStr);
+    trackerLogs = trackerLogs.filter(l => !(l.habit_id === habitId && l.date === dateStr));
+  }
+  renderTracker();
+}
+
+// ===== 習慣追加・削除 =====
+async function saveHabit() {
+  const name = document.getElementById('habit-name').value.trim();
+  if (!name) return;
+  const { data, error } = await db.from('tracker_habits')
+    .insert({ name, time_of_day: selectedTod, sort_order: habits.length })
+    .select().single();
+  if (error) { alert('追加に失敗しました: ' + error.message); return; }
+  habits.push(data);
+  document.getElementById('habit-modal').classList.add('hidden');
+  document.getElementById('habit-name').value = '';
+  renderTracker();
+}
+
+async function deleteHabit(habitId) {
+  if (!confirm('この習慣を削除しますか？')) return;
+  await db.from('tracker_habits').delete().eq('id', habitId);
+  habits = habits.filter(h => h.id !== habitId);
+  trackerLogs = trackerLogs.filter(l => l.habit_id !== habitId);
+  renderTracker();
 }
 
 // ===== Tasks データ読み込み =====
@@ -166,6 +301,7 @@ function renderYear() {
 function renderCurrentView() {
   if (currentView === 'vision') renderVision();
   if (currentView === 'tasks') renderTasksSection();
+  if (currentView === 'tracker') renderTracker();
 }
 
 // ===== Tasks セクション =====
@@ -667,6 +803,48 @@ function setupEventListeners() {
   document.getElementById('category-modal').addEventListener('click', e => { if (e.target === document.getElementById('category-modal')) document.getElementById('category-modal').classList.add('hidden'); });
 
   window.addEventListener('resize', updatePanelVisibility);
+
+  // Tracker 日付移動
+  document.getElementById('tracker-prev-day').addEventListener('click', () => {
+    trackerDate.setDate(trackerDate.getDate() - 1);
+    renderTracker();
+  });
+  document.getElementById('tracker-next-day').addEventListener('click', () => {
+    trackerDate.setDate(trackerDate.getDate() + 1);
+    renderTracker();
+  });
+
+  // 習慣追加モーダルを開く
+  document.getElementById('add-habit-btn').addEventListener('click', () => {
+    document.getElementById('habit-name').value = '';
+    selectedTod = 'morning';
+    document.querySelectorAll('.tod-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tod === 'morning');
+    });
+    document.getElementById('habit-modal').classList.remove('hidden');
+  });
+
+  // 時間帯ボタン（朝/昼/夜）
+  document.querySelectorAll('.tod-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tod-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedTod = btn.dataset.tod;
+    });
+  });
+
+  // 習慣保存・キャンセル
+  document.getElementById('save-habit').addEventListener('click', saveHabit);
+  document.getElementById('cancel-habit').addEventListener('click', () => {
+    document.getElementById('habit-modal').classList.add('hidden');
+  });
+
+  // 習慣モーダル背景クリックで閉じる
+  document.getElementById('habit-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('habit-modal')) {
+      document.getElementById('habit-modal').classList.add('hidden');
+    }
+  });
 
   // Visionモーダル
   document.getElementById('save-vision').addEventListener('click', saveVision);
