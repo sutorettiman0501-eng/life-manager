@@ -64,9 +64,9 @@ function renderTracker() {
   body.innerHTML = '';
 
   const groups = [
-    { key: 'morning',   label: '🌅 朝' },
-    { key: 'afternoon', label: '☀️ 昼' },
-    { key: 'evening',   label: '🌙 夜' },
+    { key: 'morning',   label: '朝' },
+    { key: 'afternoon', label: '昼' },
+    { key: 'evening',   label: '夜' },
   ];
 
   groups.forEach(({ key, label }) => {
@@ -81,13 +81,24 @@ function renderTracker() {
       const done = trackerLogs.some(l => l.habit_id === habit.id && l.date === dateStr);
       const item = document.createElement('div');
       item.className = 'habit-item';
-      item.innerHTML = `
-        <button class="habit-check ${done ? 'checked' : ''}" onclick="toggleHabit('${habit.id}','${dateStr}',${done})">
-          ${done ? '✓' : ''}
-        </button>
-        <span class="habit-name ${done ? 'checked' : ''}">${escapeHtml(habit.name)}</span>
-        <button class="habit-delete" onclick="deleteHabit('${habit.id}')">×</button>
-      `;
+
+      const checkBtn = document.createElement('button');
+      checkBtn.className = `habit-check${done ? ' checked' : ''}`;
+      checkBtn.textContent = done ? '✓' : '';
+      checkBtn.addEventListener('click', () => toggleHabit(habit.id, dateStr, done));
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = `habit-name${done ? ' checked' : ''}`;
+      nameSpan.textContent = habit.name;
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'habit-delete';
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', () => deleteHabit(habit.id));
+
+      item.appendChild(checkBtn);
+      item.appendChild(nameSpan);
+      item.appendChild(delBtn);
       group.appendChild(item);
     });
 
