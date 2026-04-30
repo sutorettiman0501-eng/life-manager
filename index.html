@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header>
+    <div class="header-top">
+      <h1>LIFE MANAGER</h1>
+      <div class="year-selector">
+        <button id="prev-year" class="year-btn">&#8249;</button>
+        <span id="current-year" class="year-display">2026</span>
+        <button id="next-year" class="year-btn">&#8250;</button>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="vision">Vision</button>
+      <button class="nav-btn" data-view="tasks">Tasks</button>
+      <button class="nav-btn" data-view="tracker">Tracker</button>
+      <button class="nav-btn" data-view="journal">Journal</button>
+      <button class="nav-btn" data-view="wishlist">Wishlist</button>
+    </nav>
+  </header>
+
+  <!-- Vision -->
+  <div id="vision-view" class="view active">
+    <div class="section-placeholder">
+      <p>Vision — Coming Soon</p>
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div id="tasks-view" class="view">
+    <div class="section-placeholder">
+      <p>Tasks — Coming Soon</p>
+    </div>
+  </div>
+
+  <!-- Tracker -->
+  <div id="tracker-view" class="view">
+    <div class="section-placeholder">
+      <p>Tracker — Coming Soon</p>
+    </div>
+  </div>
+
+  <!-- Journal -->
+  <div id="journal-view" class="view">
+    <div class="section-placeholder">
+      <p>Journal — Coming Soon</p>
+    </div>
+  </div>
+
+  <!-- Wishlist -->
+  <div id="wishlist-view" class="view">
+    <div class="section-placeholder">
+      <p>Wishlist — Coming Soon</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

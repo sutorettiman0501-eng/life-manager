@@ -1,0 +1,133 @@
+/* ===== リセット & 変数 ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --bg-sub: #f5f5f5;
+  --bg-card: #fafafa;
+  --border: #e0e0e0;
+  --text: #1a1a1a;
+  --text-sub: #666666;
+  --text-muted: #aaaaaa;
+  --accent: #1a1a1a;
+  --radius: 10px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+  background: var(--bg-sub);
+  color: var(--text);
+}
+
+/* ===== ヘッダー ===== */
+header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+/* ===== 年選択 ===== */
+.year-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.year-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.year-display {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  min-width: 48px;
+  text-align: center;
+}
+
+/* ===== ナビゲーション ===== */
+nav {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+nav::-webkit-scrollbar { display: none; }
+
+.nav-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.nav-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== ビュー ===== */
+.view {
+  display: none;
+  min-height: calc(100vh - 90px);
+  padding-bottom: 40px;
+}
+
+.view.active { display: block; }
+
+/* ===== プレースホルダー（開発中） ===== */
+.section-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--text-muted);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+/* ===== タブレット以上 ===== */
+@media (min-width: 768px) {
+  header { padding: 16px 32px 0; }
+  h1 { font-size: 18px; }
+  .nav-btn { padding: 10px 24px; font-size: 14px; }
+  .view { min-height: calc(100vh - 100px); }
+}
