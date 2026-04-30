@@ -208,71 +208,103 @@ async function loadWishlistData() {
 // ===== Wishlist レンダー =====
 function renderWishlist() {
   const items = wishlistItems.filter(i => i.done === wishlistShowDone);
-  const grid = document.getElementById('wishlist-grid');
-  grid.innerHTML = '';
+  const container = document.getElementById('wishlist-grid');
+  container.innerHTML = '';
 
   if (!items.length) {
-    grid.innerHTML = `<div class="wishlist-empty">${wishlistShowDone ? '完了したアイテムはありません' : 'まだアイテムがありません<br>「＋ 追加」から登録しましょう'}</div>`;
+    container.innerHTML = `<div class="wishlist-empty">${wishlistShowDone ? '完了したアイテムはありません' : 'まだアイテムがありません<br>「＋ 追加」から登録しましょう'}</div>`;
     return;
   }
 
+  // カテゴリ順
+  const categoryOrder = ['なりたい姿', 'やりたいこと', '行きたい場所', 'ほしいもの', ''];
+  const grouped = {};
+  categoryOrder.forEach(cat => { grouped[cat] = []; });
   items.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'wish-card';
-
-    // 画像エリア
-    const imgArea = document.createElement('div');
-    imgArea.className = `wish-card-img${item.url ? ' has-link' : ''}`;
-    if (item.image_url) {
-      const img = document.createElement('img');
-      img.src = item.image_url;
-      img.alt = item.name;
-      img.onerror = () => { imgArea.textContent = '画像なし'; };
-      imgArea.appendChild(img);
-    } else {
-      imgArea.textContent = '画像なし';
-    }
-    if (item.url) {
-      imgArea.addEventListener('click', () => window.open(item.url, '_blank'));
-    }
-
-    // カード本文
-    const body = document.createElement('div');
-    body.className = 'wish-card-body';
-    body.innerHTML = `
-      <div class="wish-card-name">${escapeHtml(item.name)}</div>
-      ${item.price ? `<div class="wish-card-price">¥${Number(item.price).toLocaleString()}</div>` : ''}
-      ${item.category ? `<span class="wish-card-cat">${escapeHtml(item.category)}</span>` : ''}
-    `;
-
-    // ボタンエリア
-    const actions = document.createElement('div');
-    actions.className = 'wish-card-actions';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'wish-action-btn';
-    editBtn.textContent = '編集';
-    editBtn.addEventListener('click', () => editWish(item.id));
-
-    const completeBtn = document.createElement('button');
-    completeBtn.className = `wish-action-btn${!item.done ? ' complete-btn' : ''}`;
-    completeBtn.textContent = item.done ? '未着手に戻す' : '完了';
-    completeBtn.addEventListener('click', () => toggleWishDone(item.id, item.done));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'wish-action-btn';
-    deleteBtn.textContent = '削除';
-    deleteBtn.addEventListener('click', () => deleteWish(item.id));
-
-    actions.appendChild(editBtn);
-    actions.appendChild(completeBtn);
-    actions.appendChild(deleteBtn);
-
-    card.appendChild(imgArea);
-    card.appendChild(body);
-    card.appendChild(actions);
-    grid.appendChild(card);
+    const key = categoryOrder.includes(item.category) ? item.category : '';
+    grouped[key].push(item);
   });
+
+  categoryOrder.forEach(cat => {
+    const catItems = grouped[cat];
+    if (!catItems.length) return;
+
+    const section = document.createElement('div');
+    section.className = 'wishlist-category-section';
+
+    const label = document.createElement('div');
+    label.className = 'wishlist-category-label';
+    label.textContent = cat || 'カテゴリなし';
+    section.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'wishlist-grid';
+    grid.style.padding = '0';
+
+    catItems.forEach(item => {
+      grid.appendChild(makeWishCard(item));
+    });
+
+    section.appendChild(grid);
+    container.appendChild(section);
+  });
+}
+
+function makeWishCard(item) {
+  const card = document.createElement('div');
+  card.className = 'wish-card';
+
+  // 画像エリア
+  const imgArea = document.createElement('div');
+  imgArea.className = `wish-card-img${item.url ? ' has-link' : ''}`;
+  if (item.image_url) {
+    const img = document.createElement('img');
+    img.src = item.image_url;
+    img.alt = item.name;
+    img.onerror = () => { imgArea.textContent = '画像なし'; };
+    imgArea.appendChild(img);
+  } else {
+    imgArea.textContent = '画像なし';
+  }
+  if (item.url) {
+    imgArea.addEventListener('click', () => window.open(item.url, '_blank'));
+  }
+
+  // カード本文
+  const body = document.createElement('div');
+  body.className = 'wish-card-body';
+  body.innerHTML = `
+    <div class="wish-card-name">${escapeHtml(item.name)}</div>
+    ${item.price ? `<div class="wish-card-price">¥${Number(item.price).toLocaleString()}</div>` : ''}
+  `;
+
+  // ボタンエリア
+  const actions = document.createElement('div');
+  actions.className = 'wish-card-actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'wish-action-btn';
+  editBtn.textContent = '編集';
+  editBtn.addEventListener('click', () => editWish(item.id));
+
+  const completeBtn = document.createElement('button');
+  completeBtn.className = `wish-action-btn${!item.done ? ' complete-btn' : ''}`;
+  completeBtn.textContent = item.done ? '戻す' : '完了';
+  completeBtn.addEventListener('click', () => toggleWishDone(item.id, item.done));
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'wish-action-btn';
+  deleteBtn.textContent = '削除';
+  deleteBtn.addEventListener('click', () => deleteWish(item.id));
+
+  actions.appendChild(editBtn);
+  actions.appendChild(completeBtn);
+  actions.appendChild(deleteBtn);
+
+  card.appendChild(imgArea);
+  card.appendChild(body);
+  card.appendChild(actions);
+  return card;
 }
 
 // ===== Wishlist モーダル =====
