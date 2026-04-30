@@ -29,8 +29,46 @@
 
   <!-- Vision -->
   <div id="vision-view" class="view active">
-    <div class="section-placeholder">
-      <p>Vision — Coming Soon</p>
+
+    <!-- 年タイトル -->
+    <div class="vision-year-title" id="vision-year-title">2026</div>
+
+    <!-- ビジョンカード -->
+    <div class="vision-section">
+      <div class="section-heading">MY VISION</div>
+      <div class="vision-grid" id="vision-grid"></div>
+    </div>
+
+    <!-- 年別目標 -->
+    <div class="vision-section">
+      <div class="section-heading-row">
+        <div class="section-heading" id="goals-heading">2026 GOALS</div>
+        <button class="edit-goals-btn" id="edit-goals-btn">編集</button>
+      </div>
+      <div class="goals-card" id="goals-display"></div>
+      <div class="goals-edit hidden" id="goals-edit">
+        <textarea id="goals-textarea" placeholder="例）&#10;・副業で月5万円達成&#10;・家族と月2回お出かけ&#10;・体重を5kg減らす"></textarea>
+        <div class="goals-edit-actions">
+          <button class="btn-secondary" id="cancel-goals">キャンセル</button>
+          <button class="btn-primary" id="save-goals">保存</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ビジョン編集モーダル -->
+  <div id="vision-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="vision-modal-title">Vision を編集</h2>
+      <div class="form-group">
+        <label>あなたにとって理想の姿</label>
+        <textarea id="vision-textarea" rows="6" placeholder="理想の姿や大切にしたいことを書いてください"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancel-vision">キャンセル</button>
+        <button class="btn-primary" id="save-vision">保存</button>
+      </div>
     </div>
   </div>
 
