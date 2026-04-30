@@ -1129,7 +1129,7 @@ nav::-webkit-scrollbar { display: none; }
 .wishlist-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .wish-card {
@@ -1197,27 +1197,39 @@ nav::-webkit-scrollbar { display: none; }
 
 .wish-card-actions {
   display: flex;
-  gap: 0;
+  gap: 6px;
+  padding: 8px 10px;
   border-top: 1px solid var(--bg-sub);
 }
 
 .wish-action-btn {
   flex: 1;
-  padding: 7px 4px;
-  border: none;
-  border-right: 1px solid var(--bg-sub);
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   background: none;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--text-sub);
 }
 
-.wish-action-btn:last-child { border-right: none; }
-.wish-action-btn:hover { background: var(--bg-sub); color: var(--text); }
-
 .wish-action-btn.complete-btn {
-  color: var(--accent);
-  font-weight: 700;
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.wish-delete-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius);
+  background: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: #cc3333;
 }
 
 .wishlist-empty {

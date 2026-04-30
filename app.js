@@ -289,17 +289,11 @@ function makeWishCard(item) {
 
   const completeBtn = document.createElement('button');
   completeBtn.className = `wish-action-btn${!item.done ? ' complete-btn' : ''}`;
-  completeBtn.textContent = item.done ? '戻す' : '完了';
+  completeBtn.textContent = item.done ? '未着手に戻す' : '完了';
   completeBtn.addEventListener('click', () => toggleWishDone(item.id, item.done));
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'wish-action-btn';
-  deleteBtn.textContent = '削除';
-  deleteBtn.addEventListener('click', () => deleteWish(item.id));
 
   actions.appendChild(editBtn);
   actions.appendChild(completeBtn);
-  actions.appendChild(deleteBtn);
 
   card.appendChild(imgArea);
   card.appendChild(body);
@@ -317,6 +311,7 @@ function openWishModal() {
   document.getElementById('wish-image-url').value = '';
   document.getElementById('wish-url').value = '';
   document.getElementById('wish-memo').value = '';
+  document.getElementById('delete-wish-btn').classList.add('hidden');
   document.getElementById('wish-modal').classList.remove('hidden');
 }
 
@@ -331,6 +326,7 @@ function editWish(id) {
   document.getElementById('wish-image-url').value = item.image_url || '';
   document.getElementById('wish-url').value = item.url || '';
   document.getElementById('wish-memo').value = item.memo || '';
+  document.getElementById('delete-wish-btn').classList.remove('hidden');
   document.getElementById('wish-modal').classList.remove('hidden');
 }
 
@@ -377,6 +373,7 @@ async function deleteWish(id) {
   if (!confirm('このアイテムを削除しますか？')) return;
   await db.from('wishlist_items').delete().eq('id', id);
   wishlistItems = wishlistItems.filter(i => i.id !== id);
+  closeWishModal();
   renderWishlist();
 }
 
@@ -1311,6 +1308,9 @@ function setupEventListeners() {
   document.getElementById('add-wish-btn').addEventListener('click', openWishModal);
   document.getElementById('save-wish').addEventListener('click', saveWish);
   document.getElementById('cancel-wish').addEventListener('click', closeWishModal);
+  document.getElementById('delete-wish-btn').addEventListener('click', () => {
+    if (editingWishId) deleteWish(editingWishId);
+  });
   document.getElementById('wish-modal').addEventListener('click', e => {
     if (e.target === document.getElementById('wish-modal')) closeWishModal();
   });
