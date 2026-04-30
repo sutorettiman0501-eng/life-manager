@@ -20,6 +20,11 @@ let trackerLogs = [];
 let trackerDate = new Date();
 let selectedTod = 'morning';
 
+// Wishlist データ
+let wishlistItems = [];
+let wishlistShowDone = false;
+let editingWishId = null;
+
 // Journal データ
 let journalEntries = [];
 let currentJournalView = 'daily';
@@ -50,7 +55,7 @@ const TIME_BLOCKS = [
 // ===== 初期化 =====
 async function init() {
   setupEventListeners();
-  await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData(), loadJournalData()]);
+  await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData(), loadJournalData(), loadWishlistData()]);
   renderYear();
 }
 
@@ -192,6 +197,155 @@ async function deleteHabit(habitId) {
   habits = habits.filter(h => h.id !== habitId);
   trackerLogs = trackerLogs.filter(l => l.habit_id !== habitId);
   renderTracker();
+}
+
+// ===== Wishlist データ読み込み =====
+async function loadWishlistData() {
+  const { data } = await db.from('wishlist_items').select('*').order('created_at', { ascending: false });
+  if (data) wishlistItems = data;
+}
+
+// ===== Wishlist レンダー =====
+function renderWishlist() {
+  const items = wishlistItems.filter(i => i.done === wishlistShowDone);
+  const grid = document.getElementById('wishlist-grid');
+  grid.innerHTML = '';
+
+  if (!items.length) {
+    grid.innerHTML = `<div class="wishlist-empty">${wishlistShowDone ? '完了したアイテムはありません' : 'まだアイテムがありません<br>「＋ 追加」から登録しましょう'}</div>`;
+    return;
+  }
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'wish-card';
+
+    // 画像エリア
+    const imgArea = document.createElement('div');
+    imgArea.className = `wish-card-img${item.url ? ' has-link' : ''}`;
+    if (item.image_url) {
+      const img = document.createElement('img');
+      img.src = item.image_url;
+      img.alt = item.name;
+      img.onerror = () => { imgArea.textContent = '画像なし'; };
+      imgArea.appendChild(img);
+    } else {
+      imgArea.textContent = '画像なし';
+    }
+    if (item.url) {
+      imgArea.addEventListener('click', () => window.open(item.url, '_blank'));
+    }
+
+    // カード本文
+    const body = document.createElement('div');
+    body.className = 'wish-card-body';
+    body.innerHTML = `
+      <div class="wish-card-name">${escapeHtml(item.name)}</div>
+      ${item.price ? `<div class="wish-card-price">¥${Number(item.price).toLocaleString()}</div>` : ''}
+      ${item.category ? `<span class="wish-card-cat">${escapeHtml(item.category)}</span>` : ''}
+    `;
+
+    // ボタンエリア
+    const actions = document.createElement('div');
+    actions.className = 'wish-card-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'wish-action-btn';
+    editBtn.textContent = '編集';
+    editBtn.addEventListener('click', () => editWish(item.id));
+
+    const completeBtn = document.createElement('button');
+    completeBtn.className = `wish-action-btn${!item.done ? ' complete-btn' : ''}`;
+    completeBtn.textContent = item.done ? '未着手に戻す' : '完了';
+    completeBtn.addEventListener('click', () => toggleWishDone(item.id, item.done));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'wish-action-btn';
+    deleteBtn.textContent = '削除';
+    deleteBtn.addEventListener('click', () => deleteWish(item.id));
+
+    actions.appendChild(editBtn);
+    actions.appendChild(completeBtn);
+    actions.appendChild(deleteBtn);
+
+    card.appendChild(imgArea);
+    card.appendChild(body);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+// ===== Wishlist モーダル =====
+function openWishModal() {
+  editingWishId = null;
+  document.getElementById('wish-modal-title').textContent = 'アイテムを追加';
+  document.getElementById('wish-name').value = '';
+  document.getElementById('wish-category').value = '';
+  document.getElementById('wish-price').value = '';
+  document.getElementById('wish-image-url').value = '';
+  document.getElementById('wish-url').value = '';
+  document.getElementById('wish-memo').value = '';
+  document.getElementById('wish-modal').classList.remove('hidden');
+}
+
+function editWish(id) {
+  const item = wishlistItems.find(i => i.id === id);
+  if (!item) return;
+  editingWishId = id;
+  document.getElementById('wish-modal-title').textContent = 'アイテムを編集';
+  document.getElementById('wish-name').value = item.name || '';
+  document.getElementById('wish-category').value = item.category || '';
+  document.getElementById('wish-price').value = item.price || '';
+  document.getElementById('wish-image-url').value = item.image_url || '';
+  document.getElementById('wish-url').value = item.url || '';
+  document.getElementById('wish-memo').value = item.memo || '';
+  document.getElementById('wish-modal').classList.remove('hidden');
+}
+
+function closeWishModal() {
+  document.getElementById('wish-modal').classList.add('hidden');
+  editingWishId = null;
+}
+
+async function saveWish() {
+  const name = document.getElementById('wish-name').value.trim();
+  if (!name) { alert('アイテム名を入力してください'); return; }
+  const payload = {
+    name,
+    category: document.getElementById('wish-category').value.trim(),
+    price: parseInt(document.getElementById('wish-price').value) || null,
+    image_url: document.getElementById('wish-image-url').value.trim() || null,
+    url: document.getElementById('wish-url').value.trim() || null,
+    memo: document.getElementById('wish-memo').value.trim(),
+  };
+  if (editingWishId) {
+    const { data, error } = await db.from('wishlist_items').update(payload).eq('id', editingWishId).select().single();
+    if (error) { alert('更新に失敗しました: ' + error.message); return; }
+    const idx = wishlistItems.findIndex(i => i.id === editingWishId);
+    if (idx > -1) wishlistItems[idx] = data;
+  } else {
+    const { data, error } = await db.from('wishlist_items').insert({ ...payload, done: false }).select().single();
+    if (error) { alert('追加に失敗しました: ' + error.message); return; }
+    wishlistItems.unshift(data);
+  }
+  closeWishModal();
+  renderWishlist();
+}
+
+async function toggleWishDone(id, currentDone) {
+  const { error } = await db.from('wishlist_items').update({ done: !currentDone }).eq('id', id);
+  if (!error) {
+    const item = wishlistItems.find(i => i.id === id);
+    if (item) item.done = !currentDone;
+  }
+  renderWishlist();
+}
+
+async function deleteWish(id) {
+  if (!confirm('このアイテムを削除しますか？')) return;
+  await db.from('wishlist_items').delete().eq('id', id);
+  wishlistItems = wishlistItems.filter(i => i.id !== id);
+  renderWishlist();
 }
 
 // ===== Journal データ読み込み =====
@@ -566,6 +720,7 @@ function renderCurrentView() {
   if (currentView === 'tasks') renderTasksSection();
   if (currentView === 'tracker') renderTracker();
   if (currentView === 'journal') renderJournal();
+  if (currentView === 'wishlist') renderWishlist();
 }
 
 // ===== Tasks セクション =====
@@ -1108,6 +1263,24 @@ function setupEventListeners() {
     if (e.target === document.getElementById('habit-modal')) {
       document.getElementById('habit-modal').classList.add('hidden');
     }
+  });
+
+  // Wishlist タブ切り替え
+  document.querySelectorAll('.wishlist-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wishlistShowDone = btn.dataset.done === 'true';
+      document.querySelectorAll('.wishlist-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderWishlist();
+    });
+  });
+
+  // Wishlist モーダル
+  document.getElementById('add-wish-btn').addEventListener('click', openWishModal);
+  document.getElementById('save-wish').addEventListener('click', saveWish);
+  document.getElementById('cancel-wish').addEventListener('click', closeWishModal);
+  document.getElementById('wish-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('wish-modal')) closeWishModal();
   });
 
   // Journal サブナビ

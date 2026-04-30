@@ -288,8 +288,51 @@
 
   <!-- Wishlist -->
   <div id="wishlist-view" class="view">
-    <div class="section-placeholder">
-      <p>Wishlist — Coming Soon</p>
+
+    <div class="wishlist-header">
+      <div class="wishlist-tabs">
+        <button class="wishlist-tab active" data-done="false">未着手</button>
+        <button class="wishlist-tab" data-done="true">完了</button>
+      </div>
+      <button id="add-wish-btn" class="text-btn">＋ 追加</button>
+    </div>
+
+    <div id="wishlist-grid" class="wishlist-grid"></div>
+
+  </div>
+
+  <!-- Wishlist モーダル -->
+  <div id="wish-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="wish-modal-title">アイテムを追加</h2>
+      <div class="form-group">
+        <label>アイテム名</label>
+        <input type="text" id="wish-name" placeholder="アイテム名を入力" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>カテゴリ</label>
+        <input type="text" id="wish-category" placeholder="例：ガジェット、ファッション" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>価格（任意）</label>
+        <input type="number" id="wish-price" placeholder="例：15000">
+      </div>
+      <div class="form-group">
+        <label>画像URL（任意）</label>
+        <input type="url" id="wish-image-url" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>商品リンク（任意）</label>
+        <input type="url" id="wish-url" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>メモ（任意）</label>
+        <textarea id="wish-memo" rows="3" placeholder="メモを入力"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancel-wish">キャンセル</button>
+        <button class="btn-primary" id="save-wish">保存</button>
+      </div>
     </div>
   </div>
 
