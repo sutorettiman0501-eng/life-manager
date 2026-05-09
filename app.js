@@ -785,6 +785,7 @@ function isTaskOnDate(task, dateStr) {
   const target = new Date(dateStr);
   if (target <= base) return false;
   if (task.repeat === 'daily') return true;
+  if (task.repeat === 'weekday') return target.getDay() !== 0 && target.getDay() !== 6;
   if (task.repeat === 'weekly') return base.getDay() === target.getDay();
   if (task.repeat === 'monthly') return base.getDate() === target.getDate();
   return false;
@@ -926,7 +927,7 @@ function createTaskEl(task, dateStr) {
   const done = isTaskDoneOnDate(task, dateStr);
   const cat = categories.find(c => c.id === task.category_id);
   const isRepeat = task.repeat && task.repeat !== 'none';
-  const repeatLabel = { daily: '毎日', weekly: '毎週', monthly: '毎月' }[task.repeat] || '';
+  const repeatLabel = { daily: '毎日', weekday: '平日', weekly: '毎週', monthly: '毎月' }[task.repeat] || '';
   const badges = [];
   if (cat) badges.push(`<span class="task-cat">${escapeHtml(cat.name)}</span>`);
   if (repeatLabel) badges.push(`<span class="task-repeat">${repeatLabel}</span>`);
