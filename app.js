@@ -914,6 +914,7 @@ function renderDailyBlocks() {
         animation: 150,
         ghostClass: 'sortable-ghost',
         filter: '.is-repeat',
+        preventOnFilter: false,
         onAdd: async (evt) => { if (evt.item.dataset.taskId) await moveTaskToBlock(evt.item.dataset.taskId, block.start, dateStr); },
         onStart: () => document.querySelectorAll('.block-task-zone').forEach(z => z.classList.add('drop-highlight')),
         onEnd: () => document.querySelectorAll('.block-task-zone').forEach(z => z.classList.remove('drop-highlight')),
