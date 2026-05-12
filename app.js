@@ -1220,6 +1220,10 @@ function setupEventListeners() {
       document.querySelectorAll('.panel-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activePanel = btn.dataset.panel;
+      if (btn.dataset.panel === 'today') {
+        currentDate = new Date();
+        renderDailyBlocks();
+      }
       updatePanelVisibility();
     });
   });
