@@ -274,7 +274,10 @@ function makeWishCard(item) {
   const body = document.createElement('div');
   body.className = 'wish-card-body';
   const deadlineHtml = item.deadline
-    ? `<div class="wish-card-deadline">📅 ${item.deadline.replace(/-/g, '/').replace(/^(\d{4})\/(\d{2})\/(\d{2})$/, '$1/$2/$3').slice(2)}</div>`
+    ? (() => {
+        const [y, m] = item.deadline.split('-');
+        return `<div class="wish-card-deadline">${y}年${parseInt(m)}月まで</div>`;
+      })()
     : '';
   body.innerHTML = `
     <div class="wish-card-name">${escapeHtml(item.name)}</div>
