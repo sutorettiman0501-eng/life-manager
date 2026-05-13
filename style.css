@@ -1195,6 +1195,12 @@ nav::-webkit-scrollbar { display: none; }
   display: inline-block;
 }
 
+.wish-card-deadline {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 .wish-card-actions {
   display: flex;
   gap: 6px;
