@@ -311,7 +311,8 @@ function openWishModal() {
   document.getElementById('wish-modal-title').textContent = 'アイテムを追加';
   document.getElementById('wish-name').value = '';
   document.getElementById('wish-category').value = '';
-  document.getElementById('wish-deadline').value = '';
+  const deadlineEl = document.getElementById('wish-deadline');
+  if (deadlineEl) deadlineEl.value = '';
   document.getElementById('wish-price').value = '';
   document.getElementById('wish-image-url').value = '';
   document.getElementById('wish-url').value = '';
@@ -327,7 +328,8 @@ function editWish(id) {
   document.getElementById('wish-modal-title').textContent = 'アイテムを編集';
   document.getElementById('wish-name').value = item.name || '';
   document.getElementById('wish-category').value = item.category || '';
-  document.getElementById('wish-deadline').value = item.deadline || '';
+  const deadlineEl = document.getElementById('wish-deadline');
+  if (deadlineEl) deadlineEl.value = item.deadline || '';
   document.getElementById('wish-price').value = item.price || '';
   document.getElementById('wish-image-url').value = item.image_url || '';
   document.getElementById('wish-url').value = item.url || '';
@@ -347,7 +349,7 @@ async function saveWish() {
   const payload = {
     name,
     category: document.getElementById('wish-category').value.trim(),
-    deadline: document.getElementById('wish-deadline').value || null,
+    deadline: (document.getElementById('wish-deadline') || {}).value || null,
     price: parseInt(document.getElementById('wish-price').value) || null,
     image_url: document.getElementById('wish-image-url').value.trim() || null,
     url: document.getElementById('wish-url').value.trim() || null,
