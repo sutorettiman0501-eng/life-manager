@@ -1140,7 +1140,10 @@ nav::-webkit-scrollbar { display: none; }
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
+  cursor: grab;
 }
+.wish-card:active { cursor: grabbing; }
+.wish-card.sortable-ghost { opacity: 0.4; }
 
 .wish-card-img {
   width: 100%;

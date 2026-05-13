@@ -201,7 +201,9 @@ async function deleteHabit(habitId) {
 
 // ===== Wishlist データ読み込み =====
 async function loadWishlistData() {
-  const { data } = await db.from('wishlist_items').select('*').order('created_at', { ascending: false });
+  const { data } = await db.from('wishlist_items').select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false });
   if (data) wishlistItems = data;
 }
 
@@ -247,12 +249,21 @@ function renderWishlist() {
 
     section.appendChild(grid);
     container.appendChild(section);
+
+    if (typeof Sortable !== 'undefined') {
+      new Sortable(grid, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: saveWishlistOrder,
+      });
+    }
   });
 }
 
 function makeWishCard(item) {
   const card = document.createElement('div');
   card.className = 'wish-card';
+  card.dataset.wishId = item.id;
 
   // 画像エリア
   const imgArea = document.createElement('div');
@@ -306,6 +317,21 @@ function makeWishCard(item) {
   card.appendChild(body);
   card.appendChild(actions);
   return card;
+}
+
+// ===== Wishlist 並び順保存 =====
+async function saveWishlistOrder() {
+  const allCards = document.querySelectorAll('#wishlist-grid .wish-card');
+  const updates = [];
+  allCards.forEach((card, index) => {
+    const id = card.dataset.wishId;
+    const item = wishlistItems.find(i => i.id === id);
+    if (item) {
+      item.sort_order = index;
+      updates.push(db.from('wishlist_items').update({ sort_order: index }).eq('id', id));
+    }
+  });
+  if (updates.length) await Promise.all(updates);
 }
 
 // ===== Wishlist モーダル =====
