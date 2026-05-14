@@ -57,6 +57,7 @@ async function init() {
   setupEventListeners();
   await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData(), loadJournalData(), loadWishlistData()]);
   renderYear();
+  setupRealtimeSync();
 }
 
 // ===== データ再取得（iPadホーム画面PWA対応）=====
@@ -1421,6 +1422,37 @@ function setupEventListeners() {
   document.getElementById('edit-goals-btn').addEventListener('click', openGoalsEdit);
   document.getElementById('save-goals').addEventListener('click', saveGoals);
   document.getElementById('cancel-goals').addEventListener('click', closeGoalsEdit);
+}
+
+// ===== Supabase Realtime（リアルタイム同期）=====
+function setupRealtimeSync() {
+  // tasks テーブルの変更を監視
+  db.channel('realtime-tasks')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+      if (payload.eventType === 'UPDATE') {
+        const idx = tasks.findIndex(t => t.id === payload.new.id);
+        if (idx > -1) tasks[idx] = { ...tasks[idx], ...payload.new };
+      } else if (payload.eventType === 'INSERT') {
+        if (!tasks.find(t => t.id === payload.new.id)) tasks.push(payload.new);
+      } else if (payload.eventType === 'DELETE') {
+        tasks = tasks.filter(t => t.id !== payload.old.id);
+      }
+      if (currentView === 'tasks') renderTasksSection();
+      if (currentView === 'journal') renderJournal();
+    })
+    .subscribe();
+
+  // task_completions テーブルの変更を監視
+  db.channel('realtime-completions')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'task_completions' }, (payload) => {
+      if (payload.eventType === 'INSERT') {
+        if (!completions.find(c => c.id === payload.new.id)) completions.push(payload.new);
+      } else if (payload.eventType === 'DELETE') {
+        completions = completions.filter(c => c.id !== payload.old.id);
+      }
+      if (currentView === 'tasks') renderDailyBlocks();
+    })
+    .subscribe();
 }
 
 // ===== 起動 =====
