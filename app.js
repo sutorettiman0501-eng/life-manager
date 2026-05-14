@@ -59,6 +59,28 @@ async function init() {
   renderYear();
 }
 
+// ===== データ再取得（iPadホーム画面PWA対応）=====
+let lastRefreshTime = 0;
+const REFRESH_COOLDOWN = 10000; // 10秒以内の連続リフレッシュを防ぐ
+
+async function refreshData() {
+  const now = Date.now();
+  if (now - lastRefreshTime < REFRESH_COOLDOWN) return;
+  lastRefreshTime = now;
+  await Promise.all([loadVisionData(), loadTaskData(), loadTrackerData(), loadJournalData(), loadWishlistData()]);
+  renderCurrentView();
+}
+
+// アプリがフォアグラウンドに戻ったとき（タブ切り替え・アプリ切り替え）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshData();
+});
+
+// iOSがキャッシュからページを復元したとき
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) refreshData();
+});
+
 // ===== Tracker データ読み込み =====
 async function loadTrackerData() {
   const { data: h } = await db.from('tracker_habits').select('*').order('sort_order').order('created_at');
