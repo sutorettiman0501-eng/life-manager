@@ -72,14 +72,20 @@ async function refreshData() {
   renderCurrentView();
 }
 
-// アプリがフォアグラウンドに戻ったとき（タブ切り替え・アプリ切り替え）
+// アプリがフォアグラウンドに戻ったとき（iOS PWA対応：データ再取得＋Realtime再接続）
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') refreshData();
+  if (document.visibilityState === 'visible') {
+    refreshData();
+    setupRealtimeSync();
+  }
 });
 
 // iOSがキャッシュからページを復元したとき
 window.addEventListener('pageshow', (e) => {
-  if (e.persisted) refreshData();
+  if (e.persisted) {
+    refreshData();
+    setupRealtimeSync();
+  }
 });
 
 // ===== Tracker データ読み込み =====
@@ -942,7 +948,7 @@ function setupInboxSortable() {
 function renderDailyBlocks() {
   document.getElementById('current-date').textContent = formatDateJP(currentDate);
   const dateStr = toDateStr(currentDate);
-  blockSortables.forEach(s => s.destroy());
+  blockSortables.forEach(s => { try { s.destroy(); } catch(e) {} });
   blockSortables = [];
   const container = document.getElementById('time-blocks');
   container.innerHTML = '';
@@ -1425,34 +1431,63 @@ function setupEventListeners() {
 }
 
 // ===== Supabase Realtime（リアルタイム同期）=====
-function setupRealtimeSync() {
-  // tasks テーブルの変更を監視
-  db.channel('realtime-tasks')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-      if (payload.eventType === 'UPDATE') {
-        const idx = tasks.findIndex(t => t.id === payload.new.id);
-        if (idx > -1) tasks[idx] = { ...tasks[idx], ...payload.new };
-      } else if (payload.eventType === 'INSERT') {
-        if (!tasks.find(t => t.id === payload.new.id)) tasks.push(payload.new);
-      } else if (payload.eventType === 'DELETE') {
-        tasks = tasks.filter(t => t.id !== payload.old.id);
-      }
+let realtimeChannels = [];
+let renderDebounceTimer = null;
+
+function debouncedRender() {
+  if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
+  renderDebounceTimer = setTimeout(() => {
+    renderDebounceTimer = null;
+    try {
       if (currentView === 'tasks') renderTasksSection();
       if (currentView === 'journal') renderJournal();
+    } catch (e) {
+      console.warn('Realtime render error:', e);
+    }
+  }, 300);
+}
+
+function setupRealtimeSync() {
+  // 既存のチャンネルをリセット（iOS復帰時の再接続用）
+  realtimeChannels.forEach(ch => { try { db.removeChannel(ch); } catch(e) {} });
+  realtimeChannels = [];
+
+  // tasks テーブルの変更を監視
+  const tasksCh = db.channel('realtime-tasks')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+      try {
+        if (payload.eventType === 'UPDATE') {
+          const idx = tasks.findIndex(t => t.id === payload.new.id);
+          if (idx > -1) tasks[idx] = { ...tasks[idx], ...payload.new };
+        } else if (payload.eventType === 'INSERT') {
+          if (!tasks.find(t => t.id === payload.new.id)) tasks.push(payload.new);
+        } else if (payload.eventType === 'DELETE') {
+          if (payload.old?.id) tasks = tasks.filter(t => t.id !== payload.old.id);
+        }
+        debouncedRender();
+      } catch (e) {
+        console.warn('Realtime tasks error:', e);
+      }
     })
     .subscribe();
+  realtimeChannels.push(tasksCh);
 
   // task_completions テーブルの変更を監視
-  db.channel('realtime-completions')
+  const completionsCh = db.channel('realtime-completions')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'task_completions' }, (payload) => {
-      if (payload.eventType === 'INSERT') {
-        if (!completions.find(c => c.id === payload.new.id)) completions.push(payload.new);
-      } else if (payload.eventType === 'DELETE') {
-        completions = completions.filter(c => c.id !== payload.old.id);
+      try {
+        if (payload.eventType === 'INSERT') {
+          if (!completions.find(c => c.id === payload.new.id)) completions.push(payload.new);
+        } else if (payload.eventType === 'DELETE') {
+          if (payload.old?.id) completions = completions.filter(c => c.id !== payload.old.id);
+        }
+        debouncedRender();
+      } catch (e) {
+        console.warn('Realtime completions error:', e);
       }
-      if (currentView === 'tasks') renderDailyBlocks();
     })
     .subscribe();
+  realtimeChannels.push(completionsCh);
 }
 
 // ===== 起動 =====
